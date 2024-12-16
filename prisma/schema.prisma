@@ -1,0 +1,69 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+/// User model - main user table with essential fields and roles
+model User {
+  id             Int             @id @default(autoincrement())
+  email          String          @unique               // User email (unique)
+  password       String                                // User password (hashed)
+  role           Role            @default(USER)        // User role (default: USER)
+  createdAt      DateTime        @default(now())        // Record creation timestamp
+  updatedAt      DateTime        @updatedAt            // Record last update timestamp
+  isActive       Boolean         @default(true)        // Is the user active?
+  
+  // Relations
+  profile        Profile?                              // Linked Profile details
+  passwordResets PasswordReset[]                      // Linked Password Reset entries
+  auditLogs      AuditLog[]                            // Linked Audit Log entries
+}
+
+/// Role enum - defines available user roles
+enum Role {
+  USER         // Standard user role
+  ADMIN        // Admin role
+  MODERATOR    // Moderator role
+}
+
+/// Profile model - additional details for a user
+model Profile {
+  id          Int     @id @default(autoincrement())
+  fullName    String?                               // Full name of the user
+  phoneNumber String? @unique                       // User phone number (unique)
+  address     String?                               // User address
+  profileURL     String?                               // Profile picture URL
+  userId      Int     @unique                       // Relation to the User model
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// PasswordReset model - used for forgot-password functionality
+model PasswordReset {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique                       // Unique reset token
+  userId    Int                                    // Relation to the User model
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())               // Token creation timestamp
+  expiresAt DateTime                              // Token expiration timestamp
+}
+
+/// AuditLog model - records admin actions for tracking purposes
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  action    String                               // Description of the admin action
+  userId    Int                                  // Relation to the User model
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())             // Action timestamp
+}
+
+/// AppConfig model - stores application-wide settings or configuration values
+model AppConfig {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique                       // Configuration key (unique)
+  value     String                               // Configuration value
+  createdAt DateTime @default(now())              // Record creation timestamp
+}
